@@ -25,6 +25,7 @@ import java.util.concurrent.Executors;
 public class SshService {
     private static Map<WebSocketSession, SshConnection> store = new ConcurrentHashMap<>();
     private final ModelMapper mapper;
+    private final Session ec2Session;
 
     @Value("${ec2.info.host}")
     private String host;
@@ -34,6 +35,14 @@ public class SshService {
 
     @Value("${ec2.info.password}")
     private String password;
+
+    @Value("${docker.info.host}")
+    private String containerHost;
+    @Value("${docker.info.username}")
+    private String containerUsername;
+
+    @Value("${docker.info.password}")
+    private String containerPassword;
 
     private ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -86,23 +95,24 @@ public class SshService {
     }
 
     private void connectToSSH(SshConnection connection, WebSocketSession webSocketSession) throws JSchException, IOException {
-        final String STATEMENT_DOCKER_EXECUTE = "sudo docker exec -it " + connection.getContainerId() + " /bin/bash\n";
+        int portForwardingL = ec2Session.setPortForwardingL(0, containerHost, connection.getRemotePort());
+        log.info("매핑된 리모트 포트: {}", connection.getRemotePort());
+        log.info("매핑된 로컬 포트: {}", portForwardingL);
+        connection.setLocalPort(portForwardingL);
 
-        Session session1 = null;
         Properties config = new Properties();
         config.put("StrictHostKeyChecking", "no");
 
-        session1 = connection.getJsch().getSession(username, host, 22);
-        session1.setPassword(password);
-        session1.setConfig(config);
-        session1.connect(60000);
-        Channel channel = session1.openChannel("shell");
+        Session containerSession = connection.getJsch().getSession(containerUsername, "127.0.0.1", portForwardingL);
+        containerSession.setPassword(containerPassword);
+        containerSession.setConfig(config);
+        containerSession.connect(60000);
+        Channel channel = containerSession.openChannel("shell");
         channel.connect();
-        InputStream is = channel.getInputStream();
 
+        InputStream is = channel.getInputStream();
         connection.setChannel(channel);
 
-        transToSSh(connection, STATEMENT_DOCKER_EXECUTE);
         transToSSh(connection, "clear\n");
 
         try {
@@ -112,7 +122,7 @@ public class SshService {
                 sendMessage(webSocketSession, Arrays.copyOfRange(buffer, 0, i));
             }
         } finally {
-            session1.disconnect();
+            containerSession.disconnect();
 
             if (is != null) {
                 is.close();
