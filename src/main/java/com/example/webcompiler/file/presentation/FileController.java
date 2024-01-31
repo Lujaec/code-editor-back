@@ -9,6 +9,7 @@ import com.example.webcompiler.file.presentation.dto.request.FileCreateRequest;
 import com.example.webcompiler.file.presentation.dto.request.FileExecuteRequest;
 import com.example.webcompiler.file.presentation.dto.request.FileUpdateRequest;
 import com.example.webcompiler.file.presentation.dto.response.FileInfoResponse;
+import com.example.webcompiler.ssh.application.SshService;
 import com.example.webcompiler.user.domain.User;
 import com.example.webcompiler.utill.ApiResponse;
 import jakarta.validation.Valid;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class FileController {
     private final ModelMapper mapper;
     private final FileService fileService;
+    private final SshService sshService;
 
     @PostMapping("/run")
     public ResponseEntity<Void> runFile(@RequestBody FileExecuteRequest requestDTO){
@@ -76,4 +78,14 @@ public class FileController {
         fileService.delete(dto);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
+
+//    @PostMapping("/{fileUUID}/run")
+//    public ResponseEntity<ApiResponse<Void>> run(
+//            @AuthenticationPrincipal User user,
+//            @PathVariable String fileUUID
+//    ){
+//        FileInfoResponse byUUID = fileService.findByUUID(fileUUID);
+//        sshService.
+//
+//    }
 }

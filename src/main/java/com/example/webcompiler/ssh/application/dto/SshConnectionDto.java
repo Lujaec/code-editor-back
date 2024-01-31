@@ -1,4 +1,4 @@
-package com.example.webcompiler.ssh.dto;
+package com.example.webcompiler.ssh.application.dto;
 
 import lombok.Data;
 

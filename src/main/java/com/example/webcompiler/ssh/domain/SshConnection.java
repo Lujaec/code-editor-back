@@ -1,4 +1,4 @@
-package com.example.webcompiler.ssh.entity;
+package com.example.webcompiler.ssh.domain;
 
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.JSch;

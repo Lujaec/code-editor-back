@@ -1,7 +1,7 @@
-package com.example.webcompiler.ssh.service;
+package com.example.webcompiler.ssh.application;
 
-import com.example.webcompiler.ssh.dto.SshConnectionDto;
-import com.example.webcompiler.ssh.entity.SshConnection;
+import com.example.webcompiler.ssh.application.dto.SshConnectionDto;
+import com.example.webcompiler.ssh.domain.SshConnection;
 import com.jcraft.jsch.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
