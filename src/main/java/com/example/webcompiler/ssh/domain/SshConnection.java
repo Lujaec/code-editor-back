@@ -13,8 +13,6 @@ public class SshConnection {
     private String containerId;
     private int	remotePort;
     private int localPort;
-    private WebSocketSession webSocketSession;
     private JSch jsch;
     private Channel channel;
-    private Socket socket;
 }

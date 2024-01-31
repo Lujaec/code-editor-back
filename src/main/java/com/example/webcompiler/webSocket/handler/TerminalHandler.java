@@ -2,7 +2,7 @@ package com.example.webcompiler.webSocket.handler;
 
 import com.example.webcompiler.docker.entity.MyContainer;
 import com.example.webcompiler.docker.service.DockerService;
-import com.example.webcompiler.webSocket.dto.TerminalDto;
+import com.example.webcompiler.webSocket.dto.TerminalConnectionDto;
 import com.example.webcompiler.ssh.application.dto.SshConnectionDto;
 import com.example.webcompiler.ssh.application.SshService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,23 +39,19 @@ public class TerminalHandler implements WebSocketHandler {
         log.info("handle Message. session Id = {}", session.getId());
 
         if(message.getPayload().toString().contains("OPEN WEB SOCKET")) {
-            TerminalDto terminalDto = om.readValue(message.getPayload().toString(), TerminalDto.class);
+            TerminalConnectionDto terminalConnectionDto = om.readValue(message.getPayload().toString(), TerminalConnectionDto.class);
 
-            MyContainer myContainer = dockerService.createContainer(session);
+            MyContainer myContainer = dockerService.createContainer(terminalConnectionDto.getUserUUID());
             dockerService.runContainer(myContainer);
 
-            SshConnectionDto connectionDto = mapper.map(terminalDto, SshConnectionDto.class);
+            SshConnectionDto connectionDto = mapper.map(terminalConnectionDto, SshConnectionDto.class);
             connectionDto.setPort(myContainer.getPublicPort());
             connectionDto.setContainerId(myContainer.getContainerId());
 
             sshService.initConnection(session, connectionDto);
-            //dockerService.readContainerOutput(myContainer, session);
-
         }else{
+            //TerminalCommandDto terminalCommandDto = om.readValue(message.getPayload().toString(), TerminalCommandDto.class);
             sshService.receiveHandle(session, message.getPayload().toString());
-
-            //String command = message.getPayload().toString();
-            //dockerService.writeContainer(session, command);
         }
     }
 

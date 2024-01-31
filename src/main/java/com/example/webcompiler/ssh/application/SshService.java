@@ -1,6 +1,7 @@
 package com.example.webcompiler.ssh.application;
 
 import com.example.webcompiler.ssh.application.dto.SshConnectionDto;
+import com.example.webcompiler.ssh.domain.MemorySshConnectionRepository;
 import com.example.webcompiler.ssh.domain.SshConnection;
 import com.jcraft.jsch.*;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.util.concurrent.Executors;
 @Slf4j
 @RequiredArgsConstructor
 public class SshService {
+    private final MemorySshConnectionRepository sshConnectionRepository;
     private static Map<WebSocketSession, SshConnection> store = new ConcurrentHashMap<>();
     private final ModelMapper mapper;
     private final Session ec2Session;
@@ -46,16 +48,17 @@ public class SshService {
 
     private ExecutorService executorService = Executors.newCachedThreadPool();
 
-    public void initConnection(WebSocketSession webSocketSession, SshConnectionDto dto) {
+
+
+    public void initConnection(WebSocketSession webSocketSession, SshConnectionDto dto) throws IOException {
         JSch jsch = new JSch();
 
         SshConnection connection = mapper.map(dto, SshConnection.class);
         connection.setRemotePort(dto.getPort());
         connection.setJsch(jsch);
-        connection.setWebSocketSession(webSocketSession);
 
         store.put(webSocketSession, connection);
-
+        sshConnectionRepository.saveSshConnection(webSocketSession, connection);
         executorService.execute(new Runnable() {
             @Override
             public void run() {
@@ -69,15 +72,14 @@ public class SshService {
         });
     }
 
-    public void receiveHandle(WebSocketSession session, String command) {
-        SshConnection connection = store.get(session);
+    public void receiveHandle(WebSocketSession webSocketSession, String command) {
+        SshConnection connection = sshConnectionRepository.getSshConnection(webSocketSession);
 
         if (connection != null) {
             try {
                 transToSSh(connection, command);
             } catch (IOException e) {
                 log.error("에러 정보: {}", e);
-                close(session);
             }
         }
     }

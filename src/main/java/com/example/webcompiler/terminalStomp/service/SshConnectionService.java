@@ -1,7 +1,7 @@
 //package com.example.websocket.terminalStomp.service;
 //
 //import com.example.websocket.terminalStomp.dto.SshConnectionDto;
-//import com.example.websocket.terminalStomp.dto.TerminalDto;
+//import com.example.websocket.terminalStomp.dto.TerminalConnectionDto;
 //import com.jcraft.jsch.Channel;
 //import com.jcraft.jsch.JSch;
 //import com.jcraft.jsch.JSchException;
@@ -27,7 +27,7 @@
 //    private ExecutorService executorService = Executors.newCachedThreadPool();
 //    private final TerminalService terminalService;
 //
-//    public String initConnection(TerminalDto dto) throws ExecutionException, InterruptedException {
+//    public String initConnection(TerminalConnectionDto dto) throws ExecutionException, InterruptedException {
 //        JSch jsch = new JSch();
 //        SshConnectionDto connectionDto = new SshConnectionDto();
 //        connectionDto.setJsch(jsch);
@@ -71,7 +71,7 @@
 //        }
 //    }
 //
-//    private String connectToSSH(SshConnectionDto connectionDto, TerminalDto dto) throws JSchException, IOException {
+//    private String connectToSSH(SshConnectionDto connectionDto, TerminalConnectionDto dto) throws JSchException, IOException {
 //        Session session = null;
 //        String sshMessage = "";
 //        Properties config = new Properties();

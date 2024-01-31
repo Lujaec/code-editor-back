@@ -6,9 +6,9 @@ import org.springframework.web.socket.WebSocketSession;
 import java.io.IOException;
 
 public interface ContainerRepository {
-    MyContainer getContainer(WebSocketSession session);
+    MyContainer getContainer(String userUUID);
 
-    void saveContainer(WebSocketSession session, MyContainer myContainer) throws IOException;
+    void saveContainer(String userUUID, MyContainer myContainer) throws IOException;
 
-    void deleteContainer(WebSocketSession session);
+    void deleteContainer(String userUUID);
 }

@@ -13,17 +13,17 @@ public class MemoryContainerRepository implements ContainerRepository{
     private static Map<String, MyContainer> store = new ConcurrentHashMap<>();
 
     @Override
-    public MyContainer getContainer(WebSocketSession session) {
-        return store.get(session.getId());
+    public MyContainer getContainer(String userUUID) {
+        return store.get(userUUID);
     }
 
     @Override
-    public void saveContainer(WebSocketSession session, MyContainer myContainer) throws IOException {
-        store.put(session.getId(), myContainer);
+    public void saveContainer(String userUUID, MyContainer myContainer) throws IOException {
+        store.put(userUUID, myContainer);
     }
 
     @Override
-    public void deleteContainer(WebSocketSession session) {
-        store.remove(session.getId());
+    public void deleteContainer(String userUUID) {
+        store.remove(userUUID);
     }
 }

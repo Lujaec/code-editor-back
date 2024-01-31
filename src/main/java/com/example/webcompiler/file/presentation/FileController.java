@@ -84,8 +84,9 @@ public class FileController {
 //            @AuthenticationPrincipal User user,
 //            @PathVariable String fileUUID
 //    ){
+//        String userUUID = user.getUserUUID();
 //        FileInfoResponse byUUID = fileService.findByUUID(fileUUID);
-//        sshService.
+//        sshService.findByUserUUID(userUUID)
 //
 //    }
 }

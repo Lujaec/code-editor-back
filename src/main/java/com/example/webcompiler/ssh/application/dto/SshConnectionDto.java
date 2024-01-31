@@ -8,4 +8,5 @@ public class SshConnectionDto {
     private String 	host;
     private String containerId;
     private int	port;
+    private String userUUID;
 }

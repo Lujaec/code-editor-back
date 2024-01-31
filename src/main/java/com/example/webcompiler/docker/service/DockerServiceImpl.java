@@ -32,7 +32,7 @@ public class DockerServiceImpl implements DockerService{
     private ExecutorService executorService = Executors.newCachedThreadPool();
 
     @Override
-    public MyContainer createContainer(WebSocketSession session) throws IOException {
+    public MyContainer createContainer(String userUUID) throws IOException {
         UUID uuid = UUID.randomUUID();
 
         ExposedPort exposedPort = ExposedPort.tcp(22);
@@ -54,7 +54,7 @@ public class DockerServiceImpl implements DockerService{
 
         log.info("DockerServiceImpl create container {}", containerName);
         MyContainer createdMyContainer = new MyContainer(container.getId(), containerName);
-        containerRepository.saveContainer(session, createdMyContainer);
+        containerRepository.saveContainer(userUUID, createdMyContainer);
         return createdMyContainer;
     }
 
@@ -72,66 +72,66 @@ public class DockerServiceImpl implements DockerService{
         }
     }
 
-    @Override
-    public void readContainerOutput(MyContainer myContainer, WebSocketSession session) throws IOException {
-        ExecCreateCmdResponse execCreateCmdResponse = dockerClient.execCreateCmd(myContainer.getContainerId())
-                .withAttachStdout(true)
-                .withAttachStdin(true)
-                .withAttachStderr(true)
-                .withTty(true)
-                .withCmd("/bin/bash")
-                .exec();
+//    @Override
+//    public void readContainerOutput(MyContainer myContainer, WebSocketSession session) throws IOException {
+//        ExecCreateCmdResponse execCreateCmdResponse = dockerClient.execCreateCmd(myContainer.getContainerId())
+//                .withAttachStdout(true)
+//                .withAttachStdin(true)
+//                .withAttachStderr(true)
+//                .withTty(true)
+//                .withCmd("/bin/bash")
+//                .exec();
+//
+//        InputStream inputStream = myContainer.getInputStream();
+//        OutputStream outputStream = myContainer.getOutputStream();
+//
+//        dockerClient.execStartCmd(execCreateCmdResponse.getId())
+//                .withTty(true)
+//                .withStdIn(inputStream)
+//                .exec(new ExecStartResultCallback(outputStream, System.err));
+//
+//        executorService.execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    try {
+//                        byte[] buffer = new byte[1024];
+//                        int i = 0;
+//                        while((i = inputStream.read(buffer)) != -1) {
+//                            log.info("send message: {}", new String(buffer, 0, i));
+//                            sendMessage(session, Arrays.copyOfRange(buffer, 0, i));
+//                        }
+//                    } catch (IOException e) {
+//                        throw new RuntimeException(e);
+//                    } finally {
+//                        if (inputStream != null) {
+//                            inputStream.close();
+//                        }
+//                    }
+//                } catch (IOException e) {
+//                    log.error("error: {}", e);
+//                    close(session);
+//                }
+//            }
+//        });
+//    }
 
-        InputStream inputStream = myContainer.getInputStream();
-        OutputStream outputStream = myContainer.getOutputStream();
-
-        dockerClient.execStartCmd(execCreateCmdResponse.getId())
-                .withTty(true)
-                .withStdIn(inputStream)
-                .exec(new ExecStartResultCallback(outputStream, System.err));
-
-        executorService.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    try {
-                        byte[] buffer = new byte[1024];
-                        int i = 0;
-                        while((i = inputStream.read(buffer)) != -1) {
-                            log.info("send message: {}", new String(buffer, 0, i));
-                            sendMessage(session, Arrays.copyOfRange(buffer, 0, i));
-                        }
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    } finally {
-                        if (inputStream != null) {
-                            inputStream.close();
-                        }
-                    }
-                } catch (IOException e) {
-                    log.error("error: {}", e);
-                    close(session);
-                }
-            }
-        });
-    }
-
-    @Override
-    public void writeContainer(WebSocketSession session, String command) throws IOException {
-        MyContainer myContainer = containerRepository.getContainer(session);
-
-
-
-        OutputStream outputStream = myContainer.getOutputStream();
-        if (command.equals("SIGINT")) {
-            outputStream.write(3);
-        } else if(command.equals("SIGTSTP")) {
-            outputStream.write(26);
-        } else {
-            outputStream.write(command.getBytes());
-        }
-        outputStream.flush();
-    }
+//    @Override
+//    public void writeContainer(String userUUID, String command) throws IOException {
+//        MyContainer myContainer = containerRepository.getContainer(userUUID);
+//
+//
+//
+//        OutputStream outputStream = myContainer.getOutputStream();
+//        if (command.equals("SIGINT")) {
+//            outputStream.write(3);
+//        } else if(command.equals("SIGTSTP")) {
+//            outputStream.write(26);
+//        } else {
+//            outputStream.write(command.getBytes());
+//        }
+//        outputStream.flush();
+//    }
 
 
     @Override
@@ -144,12 +144,12 @@ public class DockerServiceImpl implements DockerService{
 
     }
 
-    private void close(WebSocketSession session) {
+    private void close(String userUUID) {
         /* TDD
          * docker container 종료 or 삭제
          */
 
-        containerRepository.deleteContainer(session);
+        containerRepository.deleteContainer(userUUID);
     }
 
     private void sendMessage(WebSocketSession session, byte[] buffer) throws IOException {
