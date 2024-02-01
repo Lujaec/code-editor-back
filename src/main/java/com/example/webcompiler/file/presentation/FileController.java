@@ -4,21 +4,24 @@ import com.example.webcompiler.auth.presentation.AuthenticationPrincipal;
 import com.example.webcompiler.file.application.FileService;
 import com.example.webcompiler.file.application.dto.FileCreateDto;
 import com.example.webcompiler.file.application.dto.FileDeleteDto;
+import com.example.webcompiler.file.application.dto.FileExecuteDto;
 import com.example.webcompiler.file.application.dto.FileUpdateDto;
 import com.example.webcompiler.file.presentation.dto.request.FileCreateRequest;
 import com.example.webcompiler.file.presentation.dto.request.FileExecuteRequest;
 import com.example.webcompiler.file.presentation.dto.request.FileUpdateRequest;
 import com.example.webcompiler.file.presentation.dto.response.FileInfoResponse;
 import com.example.webcompiler.ssh.application.SshService;
+import com.example.webcompiler.ssh.domain.SshConnection;
 import com.example.webcompiler.user.domain.User;
 import com.example.webcompiler.utill.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/files")
@@ -28,11 +31,6 @@ public class FileController {
     private final ModelMapper mapper;
     private final FileService fileService;
     private final SshService sshService;
-
-    @PostMapping("/run")
-    public ResponseEntity<Void> runFile(@RequestBody FileExecuteRequest requestDTO){
-        return new ResponseEntity<Void>(HttpStatus.OK);
-    }
 
     @PostMapping()
     public ResponseEntity<ApiResponse<FileInfoResponse>> create(
@@ -79,14 +77,15 @@ public class FileController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-//    @PostMapping("/{fileUUID}/run")
-//    public ResponseEntity<ApiResponse<Void>> run(
-//            @AuthenticationPrincipal User user,
-//            @PathVariable String fileUUID
-//    ){
-//        String userUUID = user.getUserUUID();
-//        FileInfoResponse byUUID = fileService.findByUUID(fileUUID);
-//        sshService.findByUserUUID(userUUID)
-//
-//    }
+    @PostMapping("/run")
+    public ResponseEntity<ApiResponse<Void>> run(
+            @AuthenticationPrincipal User user,
+            @RequestBody FileExecuteRequest request
+    ) throws IOException {
+
+        FileExecuteDto dto = mapper.map(request, FileExecuteDto.class);
+
+        fileService.execute(dto);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

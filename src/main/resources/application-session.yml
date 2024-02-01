@@ -1,0 +1,3 @@
+session:
+  connection:
+    prefix: webSocketSession connected. session id =

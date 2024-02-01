@@ -4,18 +4,22 @@ import com.example.webcompiler.directory.domain.Directory;
 import com.example.webcompiler.directory.domain.DirectoryRepository;
 import com.example.webcompiler.file.application.dto.FileCreateDto;
 import com.example.webcompiler.file.application.dto.FileDeleteDto;
+import com.example.webcompiler.file.application.dto.FileExecuteDto;
 import com.example.webcompiler.file.application.dto.FileUpdateDto;
 import com.example.webcompiler.file.domain.Extension;
 import com.example.webcompiler.file.domain.File;
 import com.example.webcompiler.file.domain.FileRepository;
 import com.example.webcompiler.file.presentation.dto.response.FileInfoResponse;
 import com.example.webcompiler.file.presentation.dto.response.FileInfoResponses;
+import com.example.webcompiler.ssh.application.SshService;
+import com.example.webcompiler.ssh.domain.SshConnection;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,6 +33,7 @@ public class FileService {
     private final FileRepository fileRepository;
     private final DirectoryRepository directoryRepository;
     private final ModelMapper mapper;
+    private final SshService sshService;
 
     public FileInfoResponse create(FileCreateDto dto){
         File file = mapper.map(dto, File.class);
@@ -125,4 +130,47 @@ public class FileService {
         return infoResponse;
     }
 
+    public void execute(FileExecuteDto dto) throws IOException {
+        String webSocketSessionId = dto.getWebSocketSessionId();
+        SshConnection sshConnection = sshService.findByWebSocketSessionId(webSocketSessionId);
+        Extension extension = dto.getExtension();
+
+        createFile(sshConnection, dto);
+        if(extension == Extension.C || extension == Extension.CPP)
+            executeC(sshConnection, dto);
+        else if(extension == Extension.PY)
+            executePy(sshConnection, dto);
+    }
+
+    private void createFile(SshConnection sshConnection, FileExecuteDto dto) throws IOException {
+        String sourceFile = dto.getTitle() + "." + dto.getExtension().getExec();
+        String content = dto.getContent();
+
+        String replacedContent = content.replace("\"", "\\\"");
+        String fileDeleteCommand = "rm " + sourceFile + "\n";
+        sshService.transToSSh(sshConnection, fileDeleteCommand);
+
+        String fileCreateCommand = "echo \"" +  replacedContent + "\"" +
+                " >> " + sourceFile + "\n";
+
+        sshService.transToSSh(sshConnection, fileCreateCommand);
+    }
+
+
+    private void executeC(SshConnection sshConnection, FileExecuteDto dto) throws IOException {
+        String sourceFileName = dto.getTitle() + "." + dto.getExtension().getExec();
+        String compileCommand = "gcc " + sourceFileName + " -o " + dto.getTitle() + "\n";
+        String executeCommand = "./" + dto.getTitle() + "\n";
+
+        sshService.transToSSh(sshConnection, compileCommand);
+        sshService.transToSSh(sshConnection, "clear\n");
+        sshService.transToSSh(sshConnection, executeCommand);
+    }
+
+    private void executePy(SshConnection sshConnection, FileExecuteDto dto) throws IOException {
+        String sourceFileName = dto.getTitle() + "." + dto.getExtension().getExec();
+        String executeCommand = "python3 " + sourceFileName + "\n";
+        sshService.transToSSh(sshConnection, "clear\n");
+        sshService.transToSSh(sshConnection, executeCommand);
+    }
 }

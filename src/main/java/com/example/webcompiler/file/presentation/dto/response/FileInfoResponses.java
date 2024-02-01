@@ -8,9 +8,9 @@ import java.util.List;
 @Getter
 @Setter
 public class FileInfoResponses {
-    private List<FileInfoResponse> info;
+    private List<FileInfoResponse> list;
 
-    public FileInfoResponses(List<FileInfoResponse> info) {
-        this.info = info;
+    public FileInfoResponses(List<FileInfoResponse> list) {
+        this.list = list;
     }
 }

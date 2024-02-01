@@ -16,6 +16,7 @@ target/
 ### IntelliJ IDEA ###
 application-ec2.yml
 application-jwt.yml
+application-session.yml
 .idea
 *.iws
 *.iml

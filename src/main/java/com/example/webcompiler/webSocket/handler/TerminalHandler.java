@@ -2,6 +2,7 @@ package com.example.webcompiler.webSocket.handler;
 
 import com.example.webcompiler.docker.entity.MyContainer;
 import com.example.webcompiler.docker.service.DockerService;
+import com.example.webcompiler.webSocket.dto.TerminalCommandDto;
 import com.example.webcompiler.webSocket.dto.TerminalConnectionDto;
 import com.example.webcompiler.ssh.application.dto.SshConnectionDto;
 import com.example.webcompiler.ssh.application.SshService;
@@ -9,11 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.WebSocketHandler;
-import org.springframework.web.socket.WebSocketMessage;
-import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.*;
 import org.springframework.web.socket.sockjs.transport.session.WebSocketServerSockJsSession;
 
 @Slf4j
@@ -23,6 +22,9 @@ public class TerminalHandler implements WebSocketHandler {
     private final DockerService dockerService;
     private final SshService sshService;
     private final ModelMapper mapper;
+
+    @Value("${session.connection.prefix}")
+    private String sessionConnectionPrefix;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -49,9 +51,11 @@ public class TerminalHandler implements WebSocketHandler {
             connectionDto.setContainerId(myContainer.getContainerId());
 
             sshService.initConnection(session, connectionDto);
+            session.sendMessage(new TextMessage(sessionConnectionPrefix + session.getId()));
         }else{
-            //TerminalCommandDto terminalCommandDto = om.readValue(message.getPayload().toString(), TerminalCommandDto.class);
-            sshService.receiveHandle(session, message.getPayload().toString());
+            TerminalCommandDto terminalCommandDto = om.readValue(message.getPayload().toString(), TerminalCommandDto.class);
+            sshService.receiveHandle(session, terminalCommandDto.getCommand());
+            //sshService.receiveHandle(session, message.getPayload().toString());
         }
     }
 

@@ -10,15 +10,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class MemorySshConnectionRepository {
-    private static Map<WebSocketSession, SshConnection> store = new ConcurrentHashMap<>();
+    private static Map<String, SshConnection> store = new ConcurrentHashMap<>();
 
-    public SshConnection getSshConnection(WebSocketSession webSocketSession) {
-        return store.get(webSocketSession);
+    public SshConnection getSshConnection(String webSocketSessionId) {
+        return store.get(webSocketSessionId);
     }
 
 
-    public void saveSshConnection(WebSocketSession webSocketSession, SshConnection sshConnection) throws IOException {
-        store.put(webSocketSession, sshConnection);
+    public void saveSshConnection(String webSocketSessionId, SshConnection sshConnection) throws IOException {
+        store.put(webSocketSessionId, sshConnection);
     }
 
 

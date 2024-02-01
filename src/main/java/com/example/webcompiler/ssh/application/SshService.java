@@ -48,7 +48,16 @@ public class SshService {
 
     private ExecutorService executorService = Executors.newCachedThreadPool();
 
+    public SshConnection findByWebSocketSessionId(final String webSocketSessionId){
+        SshConnection sshConnection = sshConnectionRepository.getSshConnection(webSocketSessionId);
 
+        if(sshConnection == null){
+            log.info("유효하지 않은 webSocketSessionId 입니다. webSocketSessionId = {}", webSocketSessionId);
+            throw new IllegalArgumentException();
+        }
+
+        return sshConnection;
+    }
 
     public void initConnection(WebSocketSession webSocketSession, SshConnectionDto dto) throws IOException {
         JSch jsch = new JSch();
@@ -58,7 +67,7 @@ public class SshService {
         connection.setJsch(jsch);
 
         store.put(webSocketSession, connection);
-        sshConnectionRepository.saveSshConnection(webSocketSession, connection);
+        sshConnectionRepository.saveSshConnection(webSocketSession.getId(), connection);
         executorService.execute(new Runnable() {
             @Override
             public void run() {
@@ -73,7 +82,7 @@ public class SshService {
     }
 
     public void receiveHandle(WebSocketSession webSocketSession, String command) {
-        SshConnection connection = sshConnectionRepository.getSshConnection(webSocketSession);
+        SshConnection connection = sshConnectionRepository.getSshConnection(webSocketSession.getId());
 
         if (connection != null) {
             try {
@@ -134,7 +143,7 @@ public class SshService {
 
     }
 
-    private void transToSSh(SshConnection connection, String command) throws IOException {
+    public void transToSSh(SshConnection connection, String command) throws IOException {
         Channel channel = connection.getChannel();
 
         if (channel != null) {

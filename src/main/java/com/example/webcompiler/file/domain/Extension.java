@@ -17,4 +17,8 @@ public enum Extension {
     public static Extension from(String s){
         return Extension.valueOf(s.toUpperCase());
     }
+
+    public String getExec() {
+        return exec;
+    }
 }
