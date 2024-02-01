@@ -136,8 +136,10 @@ public class FileService {
         Extension extension = dto.getExtension();
 
         createFile(sshConnection, dto);
-        if(extension == Extension.C || extension == Extension.CPP)
+        if(extension == Extension.C)
             executeC(sshConnection, dto);
+        else if(extension == Extension.CPP)
+            executeCpp(sshConnection, dto);
         else if(extension == Extension.PY)
             executePy(sshConnection, dto);
     }
@@ -160,6 +162,18 @@ public class FileService {
     private void executeC(SshConnection sshConnection, FileExecuteDto dto) throws IOException {
         String sourceFileName = dto.getTitle() + "." + dto.getExtension().getExec();
         String compileCommand = "gcc " + sourceFileName + " -o " + dto.getTitle() + "\n";
+        String executeCommand = "./" + dto.getTitle() + "\n";
+
+        sshService.transToSSh(sshConnection, compileCommand);
+        sshService.transToSSh(sshConnection, "clear\n");
+        sshService.transToSSh(sshConnection, executeCommand);
+    }
+
+    private void executeCpp(SshConnection sshConnection, FileExecuteDto dto) throws IOException {
+        log.info("executeCpp !!");
+
+        String sourceFileName = dto.getTitle() + "." + dto.getExtension().getExec();
+        String compileCommand = "g++ " + sourceFileName + " -o " + dto.getTitle() + "\n";
         String executeCommand = "./" + dto.getTitle() + "\n";
 
         sshService.transToSSh(sshConnection, compileCommand);
