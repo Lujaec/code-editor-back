@@ -16,9 +16,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.List;
 import java.util.Properties;
 
 @SpringBootApplication
@@ -81,5 +83,9 @@ public class WebSocketApplication {
 		};
 	}
 
-
+	//@AuthenticationPrincipal 등록 코드
+//	@Override
+//	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
+//		argumentResolvers.add(authenticationPrincipalArgumentResolver);
+//	}
 }

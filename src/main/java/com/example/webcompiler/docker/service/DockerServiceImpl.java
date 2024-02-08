@@ -31,13 +31,15 @@ public class DockerServiceImpl implements DockerService{
     private final ContainerRepository containerRepository;
     private ExecutorService executorService = Executors.newCachedThreadPool();
 
+    private final int DEFAULT_SIZE = 3;
+
     @Override
     public MyContainer createContainer(String userUUID) throws IOException {
         UUID uuid = UUID.randomUUID();
 
         ExposedPort exposedPort = ExposedPort.tcp(22);
         Ports portBindings = new Ports();
-        portBindings.bind(exposedPort, Ports.Binding.bindPort(0)); // 나중에 0으로 바꿔야함
+        portBindings.bind(exposedPort, Ports.Binding.bindPort(0));
 
         String containerName = "ubuntu-compiler-" + uuid;
         CreateContainerResponse container = dockerClient.createContainerCmd("ubuntu-compiler")
@@ -54,7 +56,7 @@ public class DockerServiceImpl implements DockerService{
 
         log.info("DockerServiceImpl create container {}", containerName);
         MyContainer createdMyContainer = new MyContainer(container.getId(), containerName);
-        containerRepository.saveContainer(userUUID, createdMyContainer);
+        containerRepository.saveExitedContainer(createdMyContainer);
         return createdMyContainer;
     }
 
@@ -72,71 +74,70 @@ public class DockerServiceImpl implements DockerService{
         }
     }
 
-//    @Override
-//    public void readContainerOutput(MyContainer myContainer, WebSocketSession session) throws IOException {
-//        ExecCreateCmdResponse execCreateCmdResponse = dockerClient.execCreateCmd(myContainer.getContainerId())
-//                .withAttachStdout(true)
-//                .withAttachStdin(true)
-//                .withAttachStderr(true)
-//                .withTty(true)
-//                .withCmd("/bin/bash")
-//                .exec();
-//
-//        InputStream inputStream = myContainer.getInputStream();
-//        OutputStream outputStream = myContainer.getOutputStream();
-//
-//        dockerClient.execStartCmd(execCreateCmdResponse.getId())
-//                .withTty(true)
-//                .withStdIn(inputStream)
-//                .exec(new ExecStartResultCallback(outputStream, System.err));
-//
-//        executorService.execute(new Runnable() {
-//            @Override
-//            public void run() {
-//                try {
-//                    try {
-//                        byte[] buffer = new byte[1024];
-//                        int i = 0;
-//                        while((i = inputStream.read(buffer)) != -1) {
-//                            log.info("send message: {}", new String(buffer, 0, i));
-//                            sendMessage(session, Arrays.copyOfRange(buffer, 0, i));
-//                        }
-//                    } catch (IOException e) {
-//                        throw new RuntimeException(e);
-//                    } finally {
-//                        if (inputStream != null) {
-//                            inputStream.close();
-//                        }
-//                    }
-//                } catch (IOException e) {
-//                    log.error("error: {}", e);
-//                    close(session);
-//                }
-//            }
-//        });
-//    }
+    @Override
+    public void prepareContainers() throws IOException {
 
-//    @Override
-//    public void writeContainer(String userUUID, String command) throws IOException {
-//        MyContainer myContainer = containerRepository.getContainer(userUUID);
-//
-//
-//
-//        OutputStream outputStream = myContainer.getOutputStream();
-//        if (command.equals("SIGINT")) {
-//            outputStream.write(3);
-//        } else if(command.equals("SIGTSTP")) {
-//            outputStream.write(26);
-//        } else {
-//            outputStream.write(command.getBytes());
-//        }
-//        outputStream.flush();
-//    }
+        ExposedPort exposedPort = ExposedPort.tcp(22);
+        Ports portBindings = new Ports();
+        portBindings.bind(exposedPort, Ports.Binding.bindPort(0));
 
+        for(int i = 0; i < DEFAULT_SIZE; ++i){
+            UUID uuid = UUID.randomUUID();
+            String containerName = "ubuntu-compiler-" + uuid;
+            CreateContainerResponse container = dockerClient.createContainerCmd("ubuntu-compiler")
+                    .withEnv(List.of(uuid.toString()))
+                    .withName(containerName)
+                    .withExposedPorts(exposedPort)
+                    .withPortBindings(portBindings)
+                    .withTty(true)
+                    .withAttachStdin(true)
+                    .withAttachStdout(true)
+                    .withAttachStderr(true)
+                    .exec();
+
+            log.info("DockerServiceImpl create container {}", containerName);
+            MyContainer createdMyContainer = new MyContainer(container.getId(), containerName);
+            containerRepository.saveExitedContainer(createdMyContainer);
+        }
+    }
+
+    /*
+    * 사용자가 실행중인 컨테이너를 소유할 경우 실행 중인 컨테이너를 반환
+    * 사용자가 실행중인 컨테이너를 소유하지 않은 경우 실행 중인 컨테이너를 할당
+     */
+    @Override
+    public MyContainer allocateContainer(String userUUID) throws IOException, InterruptedException {
+        MyContainer activeContainer = containerRepository.getActiveContainer(userUUID);
+
+        if(activeContainer != null) {
+            log.info("해당 사용자는 이미 Container가 할당된 상태입니다. userUUID = {}, contrainerID = {}", userUUID, activeContainer.getContainerId());
+            return activeContainer;
+        }
+
+        MyContainer allocContainer = containerRepository.popExitedContainer();
+
+        if (allocContainer == null){
+            log.info("exited상태인 컨테이너가 존재하지 않습니디. 컨태이너 추가");
+            prepareContainers();
+            allocContainer = containerRepository.popExitedContainer();
+        }
+
+        runContainer(allocContainer);
+        return containerRepository.saveActiveContainer(userUUID, allocContainer);
+    }
 
     @Override
-    public void stopContainer() {
+    public void stopContainer(String userUUID) throws IOException {
+        MyContainer stopContainer = containerRepository.popActiveContainer(userUUID);
 
+        if(stopContainer == null){
+            log.info("[DockerService#stopContainer] can not found active container. userUUID = {}", userUUID);
+            return;
+        }
+
+        containerRepository.saveExitedContainer(stopContainer);
+        dockerClient.stopContainerCmd(stopContainer.getContainerId())
+                .exec();
     }
 
     @Override
@@ -149,7 +150,7 @@ public class DockerServiceImpl implements DockerService{
          * docker container 종료 or 삭제
          */
 
-        containerRepository.deleteContainer(userUUID);
+        //containerRepository.deleteContainer(userUUID);
     }
 
     private void sendMessage(WebSocketSession session, byte[] buffer) throws IOException {

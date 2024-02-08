@@ -6,9 +6,16 @@ import org.springframework.web.socket.WebSocketSession;
 import java.io.IOException;
 
 public interface ContainerRepository {
-    MyContainer getContainer(String userUUID);
+    MyContainer getActiveContainer(String userUUID);
 
-    void saveContainer(String userUUID, MyContainer myContainer) throws IOException;
+    MyContainer saveActiveContainer(String userUUID, MyContainer myContainer);
 
-    void deleteContainer(String userUUID);
+    MyContainer popActiveContainer(String userUUID);
+
+    MyContainer getExitedContainer();
+
+    MyContainer saveExitedContainer(MyContainer myContainer) throws IOException;
+
+    MyContainer popExitedContainer();
+
 }

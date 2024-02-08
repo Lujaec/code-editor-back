@@ -43,8 +43,10 @@ public class TerminalHandler implements WebSocketHandler {
         if(message.getPayload().toString().contains("OPEN WEB SOCKET")) {
             TerminalConnectionDto terminalConnectionDto = om.readValue(message.getPayload().toString(), TerminalConnectionDto.class);
 
-            MyContainer myContainer = dockerService.createContainer(terminalConnectionDto.getUserUUID());
-            dockerService.runContainer(myContainer);
+//            MyContainer myContainer = dockerService.createContainer(terminalConnectionDto.getUserUUID());
+//            dockerService.runContainer(myContainer);
+
+            MyContainer myContainer = dockerService.allocateContainer(terminalConnectionDto.getUserUUID());
 
             SshConnectionDto connectionDto = mapper.map(terminalConnectionDto, SshConnectionDto.class);
             connectionDto.setPort(myContainer.getPublicPort());
@@ -65,7 +67,7 @@ public class TerminalHandler implements WebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
-        sshService.close(session);
+        sshService.close(session.getId());
     }
 
     @Override

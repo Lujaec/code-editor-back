@@ -1,28 +1,45 @@
 package com.example.webcompiler.ssh.domain;
 
-import com.example.webcompiler.ssh.domain.SshConnection;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
-import org.springframework.web.socket.WebSocketSession;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
+@Slf4j
 public class MemorySshConnectionRepository {
-    private static Map<String, SshConnection> store = new ConcurrentHashMap<>();
+    /**
+     * key: webSocketSessionID
+     * value: SshConnection
+     */
+    private static Map<String, SshConnection> connectionStore = new ConcurrentHashMap<>();
+
+    /**
+     * key: userUUID
+     * Value: userUUID를 가진 사용자가 현재 연결한 SSH 개수
+     */
+    private static Map<String, Integer> sshCntStore = new ConcurrentHashMap<>();
 
     public SshConnection getSshConnection(String webSocketSessionId) {
-        return store.get(webSocketSessionId);
+        return connectionStore.get(webSocketSessionId);
     }
 
-
-    public void saveSshConnection(String webSocketSessionId, SshConnection sshConnection) throws IOException {
-        store.put(webSocketSessionId, sshConnection);
+    public SshConnection saveSshConnection(String webSocketSessionId, SshConnection sshConnection ){
+        connectionStore.put(webSocketSessionId, sshConnection);
+        return sshConnection;
     }
 
+    public void deleteSshConnection(String webSocketSessionId){
+        connectionStore.remove(webSocketSessionId);
+    }
 
-    public void deleteSshConnection(WebSocketSession webSocketSession) {
-        store.remove(webSocketSession);
+    public int updateSshCnt(String userUUID, int delta){
+        int cnt = sshCntStore.merge(userUUID, delta, Integer::sum);
+
+        if (cnt == 0)
+            sshCntStore.remove(userUUID);
+
+        return cnt;
     }
 }
