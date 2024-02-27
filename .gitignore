@@ -17,6 +17,8 @@ target/
 application-ec2.yml
 application-jwt.yml
 application-session.yml
+application-db.yml
+
 .idea
 *.iws
 *.iml
