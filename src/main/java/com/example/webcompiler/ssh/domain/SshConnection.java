@@ -11,6 +11,7 @@ import java.net.Socket;
 public class SshConnection {
     private String type;
     private String containerId;
+    private String userUUID;
     private int	remotePort;
     private int localPort;
     private JSch jsch;

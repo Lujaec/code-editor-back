@@ -1,22 +1,22 @@
 spring:
   application:
     name: terminal-service
-  h2:
-    console:
-      enabled: true
-      settings:
-        web-allow-others: true
-      path: /h2-console
-  datasource:
-    diver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:testdb
-    username: sa
+#  h2:
+#    console:
+#      enabled: true
+#      settings:
+#        web-allow-others: true
+#      path: /h2-console
+#  datasource:
+#    diver-class-name: org.h2.Driver
+#    url: jdbc:h2:mem:testdb
+#    username: sa
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
   profiles:
-    include: ec2, jwt, session
+    include: ec2, jwt, session, db
 
 #logging:
 #  level:

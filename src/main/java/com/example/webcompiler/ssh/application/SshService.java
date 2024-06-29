@@ -1,5 +1,6 @@
 package com.example.webcompiler.ssh.application;
 
+import com.example.webcompiler.docker.service.DockerService;
 import com.example.webcompiler.ssh.application.dto.SshConnectionDto;
 import com.example.webcompiler.ssh.domain.MemorySshConnectionRepository;
 import com.example.webcompiler.ssh.domain.SshConnection;
@@ -28,15 +29,7 @@ public class SshService {
     private static Map<WebSocketSession, SshConnection> store = new ConcurrentHashMap<>();
     private final ModelMapper mapper;
     private final Session ec2Session;
-
-    @Value("${ec2.info.host}")
-    private String host;
-
-    @Value("${ec2.info.username}")
-    private String username;
-
-    @Value("${ec2.info.password}")
-    private String password;
+    private final DockerService dockerService;
 
     @Value("${docker.info.host}")
     private String containerHost;
@@ -66,8 +59,7 @@ public class SshService {
         connection.setRemotePort(dto.getPort());
         connection.setJsch(jsch);
 
-        store.put(webSocketSession, connection);
-        sshConnectionRepository.saveSshConnection(webSocketSession.getId(), connection);
+        saveSshConnection(webSocketSession.getId(), connection);
         executorService.execute(new Runnable() {
             @Override
             public void run() {
@@ -75,7 +67,11 @@ public class SshService {
                     connectToSSH(connection, webSocketSession);
                 } catch (JSchException | IOException e) {
                     log.error("error: {}", e);
-                    close(webSocketSession);
+                    try {
+                        close(webSocketSession.getId());
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 }
             }
         });
@@ -97,12 +93,17 @@ public class SshService {
         session.sendMessage(new TextMessage(buffer));
     }
 
-    public void close(WebSocketSession webSocketSession) {
-        SshConnection connection =  store.get(webSocketSession);
+    public void close(String webSocketSessionId) throws IOException {
+        SshConnection connection = sshConnectionRepository.getSshConnection(webSocketSessionId);
 
         if (connection != null) {
             if (connection.getChannel() != null) connection.getChannel().disconnect();
+            deleteSshConnection(webSocketSessionId, connection.getUserUUID());
+        }else{
+            log.info("[SshService#close] connection not found. websocketSessionId = {}", webSocketSessionId);
         }
+
+
     }
 
     private void connectToSSH(SshConnection connection, WebSocketSession webSocketSession) throws JSchException, IOException {
@@ -139,8 +140,6 @@ public class SshService {
                 is.close();
             }
         }
-
-
     }
 
     public void transToSSh(SshConnection connection, String command) throws IOException {
@@ -157,5 +156,24 @@ public class SshService {
             }
             os.flush();
         }
+    }
+
+    private void saveSshConnection(String webSocketSessionId, SshConnection sshConnection) throws IOException {
+        sshConnectionRepository.saveSshConnection(webSocketSessionId, sshConnection);
+
+        String userUUID = sshConnection.getUserUUID();
+
+        int updatedSshCnt = sshConnectionRepository.updateSshCnt(userUUID, 1);
+        log.info("saveSshConnection. userUUID = {} sshCnt = {}", userUUID, updatedSshCnt);
+    }
+
+    private void deleteSshConnection(String webSocketSessionId, String userUUID) throws IOException {
+        sshConnectionRepository.deleteSshConnection(webSocketSessionId);
+
+        int updateSshCnt = sshConnectionRepository.updateSshCnt(userUUID, -1);
+        log.info("deleteSshConnection. userUUID = {} sshCnt = {}", userUUID, updateSshCnt);
+
+        if (updateSshCnt == 0)
+            dockerService.stopContainer(userUUID);
     }
 }
