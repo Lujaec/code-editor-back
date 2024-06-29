@@ -31,15 +31,6 @@ public class SshService {
     private final Session ec2Session;
     private final DockerService dockerService;
 
-    @Value("${ec2.info.host}")
-    private String host;
-
-    @Value("${ec2.info.username}")
-    private String username;
-
-    @Value("${ec2.info.password}")
-    private String password;
-
     @Value("${docker.info.host}")
     private String containerHost;
     @Value("${docker.info.username}")
@@ -68,7 +59,6 @@ public class SshService {
         connection.setRemotePort(dto.getPort());
         connection.setJsch(jsch);
 
-        //store.put(webSocketSession, connection);
         saveSshConnection(webSocketSession.getId(), connection);
         executorService.execute(new Runnable() {
             @Override
@@ -150,8 +140,6 @@ public class SshService {
                 is.close();
             }
         }
-
-
     }
 
     public void transToSSh(SshConnection connection, String command) throws IOException {
@@ -169,7 +157,6 @@ public class SshService {
             os.flush();
         }
     }
-
 
     private void saveSshConnection(String webSocketSessionId, SshConnection sshConnection) throws IOException {
         sshConnectionRepository.saveSshConnection(webSocketSessionId, sshConnection);
