@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Properties;
 
@@ -55,6 +56,38 @@ public class WebSocketApplication {
 
 	@Bean
 	DockerClient dockerClient() throws IOException {
+//		DockerCmdExecFactory dockerCmdExecFactory = new JerseyDockerCmdExecFactory();
+//
+//		// Create a temporary directory
+//		File tempDir = Files.createTempDirectory("dockerCert").toFile();
+//
+//		// Extract dockerCert contents from classpath to the temporary directory
+//		Resource resource = new ClassPathResource("dockerCert");
+//		if (resource.exists() && resource.isReadable() && resource.getFile().isDirectory()) {
+//			File[] files = resource.getFile().listFiles();
+//			if (files != null) {
+//				for (File file : files) {
+//					InputStream inputStream = new ClassPathResource("dockerCert/" + file.getName()).getInputStream();
+//					File targetFile = new File(tempDir, file.getName());
+//					try (FileOutputStream out = new FileOutputStream(targetFile)) {
+//						FileCopyUtils.copy(inputStream, out);
+//					}
+//				}
+//			}
+//		}
+//
+//		String dockerCertPath = tempDir.getAbsolutePath();
+//		SSLConfig sslConfig =  new LocalDirectorySSLConfig(dockerCertPath);
+//
+//		DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
+//				.withDockerHost("tcp://"+host+":2376")
+//				.withDockerTlsVerify(true)
+//				.withCustomSslConfig(sslConfig)
+//				.build();
+//
+//		DockerClient dockerClient = DockerClientBuilder.getInstance(config).build();
+//		return dockerClient;
+
 		DockerCmdExecFactory dockerCmdExecFactory = new JerseyDockerCmdExecFactory();
 
 		String dockerCertPath = new ClassPathResource("dockerCert").getFile().getAbsolutePath();
@@ -92,7 +125,10 @@ public class WebSocketApplication {
 		return new WebMvcConfigurer() {
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
-				registry.addMapping("/**").allowedOrigins("http://localhost:3000");
+				registry.addMapping("/**")
+						.allowedOriginPatterns("*")
+						.allowedMethods("GET", "POST")
+						.allowCredentials(true); // 쿠키 인증 요청 허용
 			}
 		};
 	}
