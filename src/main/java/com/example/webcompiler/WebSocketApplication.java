@@ -56,41 +56,23 @@ public class WebSocketApplication {
 
 	@Bean
 	DockerClient dockerClient() throws IOException {
-//		DockerCmdExecFactory dockerCmdExecFactory = new JerseyDockerCmdExecFactory();
-//
-//		// Create a temporary directory
-//		File tempDir = Files.createTempDirectory("dockerCert").toFile();
-//
-//		// Extract dockerCert contents from classpath to the temporary directory
-//		Resource resource = new ClassPathResource("dockerCert");
-//		if (resource.exists() && resource.isReadable() && resource.getFile().isDirectory()) {
-//			File[] files = resource.getFile().listFiles();
-//			if (files != null) {
-//				for (File file : files) {
-//					InputStream inputStream = new ClassPathResource("dockerCert/" + file.getName()).getInputStream();
-//					File targetFile = new File(tempDir, file.getName());
-//					try (FileOutputStream out = new FileOutputStream(targetFile)) {
-//						FileCopyUtils.copy(inputStream, out);
-//					}
-//				}
-//			}
-//		}
-//
-//		String dockerCertPath = tempDir.getAbsolutePath();
-//		SSLConfig sslConfig =  new LocalDirectorySSLConfig(dockerCertPath);
-//
-//		DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
-//				.withDockerHost("tcp://"+host+":2376")
-//				.withDockerTlsVerify(true)
-//				.withCustomSslConfig(sslConfig)
-//				.build();
-//
-//		DockerClient dockerClient = DockerClientBuilder.getInstance(config).build();
-//		return dockerClient;
-
 		DockerCmdExecFactory dockerCmdExecFactory = new JerseyDockerCmdExecFactory();
+		File tempDir = Files.createTempDirectory("dockerCert").toFile();
+		Resource resource = new ClassPathResource("dockerCert");
+		if (resource.exists()) {
+			File[] files = resource.getFile().listFiles();
+			if (files != null) {
+				for (File file : files) {
+					InputStream inputStream = new ClassPathResource("dockerCert/" + file.getName()).getInputStream();
+					File targetFile = new File(tempDir, file.getName());
+					try (FileOutputStream out = new FileOutputStream(targetFile)) {
+						FileCopyUtils.copy(inputStream, out);
+					}
+				}
+			}
+		}
 
-		String dockerCertPath = new ClassPathResource("dockerCert").getFile().getAbsolutePath();
+		String dockerCertPath = tempDir.getAbsolutePath();
 		SSLConfig sslConfig =  new LocalDirectorySSLConfig(dockerCertPath);
 
 		DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
