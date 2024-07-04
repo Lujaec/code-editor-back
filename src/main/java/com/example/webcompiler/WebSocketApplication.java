@@ -17,6 +17,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -56,17 +57,20 @@ public class WebSocketApplication {
 
 	@Bean
 	DockerClient dockerClient() throws IOException {
-		DockerCmdExecFactory dockerCmdExecFactory = new JerseyDockerCmdExecFactory();
 		File tempDir = Files.createTempDirectory("dockerCert").toFile();
-		Resource resource = new ClassPathResource("dockerCert");
-		if (resource.exists()) {
-			File[] files = resource.getFile().listFiles();
-			if (files != null) {
-				for (File file : files) {
-					InputStream inputStream = new ClassPathResource("dockerCert/" + file.getName()).getInputStream();
-					File targetFile = new File(tempDir, file.getName());
-					try (FileOutputStream out = new FileOutputStream(targetFile)) {
-						FileCopyUtils.copy(inputStream, out);
+
+		// Extract dockerCert contents from classpath to the temporary directory
+		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+		Resource[] resources = resolver.getResources("classpath:dockerCert/*");
+
+		for (Resource resource : resources) {
+			if (resource.isReadable()) {
+				String filename = resource.getFilename();
+				if (filename != null) {
+					File targetFile = new File(tempDir, filename);
+					try (InputStream inputStream = resource.getInputStream();
+						 FileOutputStream outputStream = new FileOutputStream(targetFile)) {
+						FileCopyUtils.copy(inputStream, outputStream);
 					}
 				}
 			}
