@@ -1,0 +1,77 @@
+name: CD Pipeline for push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Maven Caching
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Make Configuration
+        run: |
+          cd ./src/main
+          mkdir resources
+          cd ./resources
+          echo "${{ secrets.APPLICATION }}" > ./application.yml
+          echo "${{ secrets.APPLICATION_DB }}" > ./application-db.yml
+          echo "${{ secrets.APPLICATION_DOCKER }}" > ./application-dockerEc2.yml
+          echo "${{ secrets.APPLICATION_JWT }}" > ./application-jwt.yml
+          echo "${{ secrets.APPLICATION_SESSION }}" > ./application-session.yml
+          mkdir dockerCert
+          cd ./dockerCert
+          echo "${{ secrets.CA }}" > ./ca.pem
+          echo "${{ secrets.CERT }}" > ./cert.pem
+          echo "${{ secrets.KEY }}" > ./key.pem
+        shell: bash
+        
+      - name: Build with Maven
+        run: mvn clean install
+        
+      - name: Make zip file
+        run: |
+          mkdir deploy
+          cp ./appspec.yml ./deploy/
+          cp ./Dockerfile ./deploy/
+          cp ./deploy.sh ./deploy/
+          cp ./target/*.jar ./deploy/
+          zip -r -qq -j ./spring-build.zip ./deploy
+          
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+        
+      - name: Upload to S3
+        run: |
+          aws s3 cp \
+            --region ap-northeast-2 \
+            ./spring-build.zip s3://web-compiler-bucket
+
+      - name: Code Deploy
+        run: aws deploy create-deployment --application-name spring-deploy
+          --deployment-config-name CodeDeployDefault.OneAtATime
+          --deployment-group-name Spring-deploy-blue-green
+          --s3-location bucket=web-compiler-bucket,bundleType=zip,key=spring-build.zip
