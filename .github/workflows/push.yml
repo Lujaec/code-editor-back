@@ -30,9 +30,7 @@ jobs:
 
       - name: Make Configuration
         run: |
-          cd ./src/main
-          mkdir resources
-          cd ./resources
+          cd ./src/main/resources
           echo "${{ secrets.APPLICATION }}" > ./application.yml
           echo "${{ secrets.APPLICATION_DB }}" > ./application-db.yml
           echo "${{ secrets.APPLICATION_DOCKER }}" > ./application-dockerEc2.yml
