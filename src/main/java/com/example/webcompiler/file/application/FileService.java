@@ -35,6 +35,7 @@ public class FileService {
     private final ModelMapper mapper;
     private final SshService sshService;
 
+    @Transactional
     public FileInfoResponse create(FileCreateDto dto){
         File file = mapper.map(dto, File.class);
         Optional<Directory> directoryWrapper = directoryRepository.findByDirectoryUUID(dto.getDirectoryUUID());
@@ -52,6 +53,7 @@ public class FileService {
         return convertToFileInfoResponse(file);
     }
 
+    @Transactional
     public FileInfoResponse update(FileUpdateDto dto){
         Optional<File> fileWrapper = fileRepository.findByFileUUID(dto.getFileUUID());
 
@@ -75,6 +77,7 @@ public class FileService {
         return convertToFileInfoResponse(file);
     }
 
+    @Transactional
     public void delete(FileDeleteDto dto){
         Optional<File> fileWrapper = fileRepository.findByFileUUID(dto.getFileUUID());
 
@@ -136,6 +139,8 @@ public class FileService {
         Extension extension = dto.getExtension();
 
         createFile(sshConnection, dto);
+        sshService.transToSSh(sshConnection, "clear\n");
+
         if(extension == Extension.C)
             executeC(sshConnection, dto);
         else if(extension == Extension.CPP)
@@ -145,7 +150,7 @@ public class FileService {
     }
 
     private void createFile(SshConnection sshConnection, FileExecuteDto dto) throws IOException {
-        String sourceFile = dto.getTitle() + "." + dto.getExtension().getExec();
+        String sourceFile = dto.getTitle();
         String content = dto.getContent();
 
         String replacedContent = content.replace("\"", "\\\"");
@@ -160,31 +165,32 @@ public class FileService {
 
 
     private void executeC(SshConnection sshConnection, FileExecuteDto dto) throws IOException {
-        String sourceFileName = dto.getTitle() + "." + dto.getExtension().getExec();
-        String compileCommand = "gcc " + sourceFileName + " -o " + dto.getTitle() + "\n";
-        String executeCommand = "./" + dto.getTitle() + "\n";
+        String sourceFileName = dto.getTitle();
+        String noExecTitle = dto.getTitle().replaceAll("\\.(.*?)$", "");
+        String compileCommand = "gcc " + sourceFileName + " -o " + noExecTitle + "\n";
+        String executeCommand = "./" + noExecTitle + "\n";
 
         sshService.transToSSh(sshConnection, compileCommand);
-        sshService.transToSSh(sshConnection, "clear\n");
+
         sshService.transToSSh(sshConnection, executeCommand);
     }
 
     private void executeCpp(SshConnection sshConnection, FileExecuteDto dto) throws IOException {
         log.info("executeCpp !!");
 
-        String sourceFileName = dto.getTitle() + "." + dto.getExtension().getExec();
-        String compileCommand = "g++ " + sourceFileName + " -o " + dto.getTitle() + "\n";
-        String executeCommand = "./" + dto.getTitle() + "\n";
+        String sourceFileName = dto.getTitle();
+        String noExecTitle = dto.getTitle().replaceAll("\\.(.*?)$", "");
+        String compileCommand = "g++ " + sourceFileName + " -o " + noExecTitle + "\n";
+        String executeCommand = "./" + noExecTitle + "\n";
 
         sshService.transToSSh(sshConnection, compileCommand);
-        sshService.transToSSh(sshConnection, "clear\n");
         sshService.transToSSh(sshConnection, executeCommand);
     }
 
     private void executePy(SshConnection sshConnection, FileExecuteDto dto) throws IOException {
-        String sourceFileName = dto.getTitle() + "." + dto.getExtension().getExec();
+        String sourceFileName = dto.getTitle();
         String executeCommand = "python3 " + sourceFileName + "\n";
-        sshService.transToSSh(sshConnection, "clear\n");
+
         sshService.transToSSh(sshConnection, executeCommand);
     }
 }

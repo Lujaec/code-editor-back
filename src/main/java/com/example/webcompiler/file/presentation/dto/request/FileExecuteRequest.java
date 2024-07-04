@@ -9,6 +9,7 @@ import lombok.Setter;
 public class FileExecuteRequest {
     private String title;
     private String content;
+    private String fileUUID;
     private Extension extension;
     private String webSocketSessionId;
 }

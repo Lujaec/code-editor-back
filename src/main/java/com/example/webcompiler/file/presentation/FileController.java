@@ -83,9 +83,11 @@ public class FileController {
             @RequestBody FileExecuteRequest request
     ) throws IOException {
 
-        FileExecuteDto dto = mapper.map(request, FileExecuteDto.class);
+        FileExecuteDto executeDto = mapper.map(request, FileExecuteDto.class);
+        FileUpdateDto updateDto = mapper.map(request, FileUpdateDto.class);
 
-        fileService.execute(dto);
+        fileService.update(updateDto);
+        fileService.execute(executeDto);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

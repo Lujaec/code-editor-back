@@ -84,7 +84,7 @@ public class DockerServiceImpl implements DockerService{
         for(int i = 0; i < DEFAULT_SIZE; ++i){
             UUID uuid = UUID.randomUUID();
             String containerName = "ubuntu-compiler-" + uuid;
-            CreateContainerResponse container = dockerClient.createContainerCmd("ubuntu-compiler")
+            CreateContainerResponse container = dockerClient.createContainerCmd("ubuntu-compiler:v1.0")
                     .withEnv(List.of(uuid.toString()))
                     .withName(containerName)
                     .withExposedPorts(exposedPort)
