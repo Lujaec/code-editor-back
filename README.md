@@ -18,7 +18,9 @@
  - 아래의 터미널창에서 ls, cp, rm 등 실제 UNIX 명령어를 처리할 수 있습니다. 
    
 ## 기술 스택
-![기술스택](https://github.com/Lujaec/code-editor-back/assets/62204810/9b0f6ebb-2473-4011-a510-cb4c8a8bc5fa)
+<p align="center">
+ <img src="https://github.com/Lujaec/code-editor-back/assets/62204810/f8130548-40f5-41c4-af87-9b140be81821"/>
+</p>
 <p align="center">
   <img src="https://img.shields.io/badge/Spring%20Boot-3.2.1-6DB33F?logo=spring-boot&logoColor=white" alt="Spring Boot">
   <img src="https://img.shields.io/badge/Java-17-007396?logo=java&logoColor=white" alt="Java">
