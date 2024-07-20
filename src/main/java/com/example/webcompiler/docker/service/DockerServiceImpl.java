@@ -1,5 +1,6 @@
 package com.example.webcompiler.docker.service;
 
+import com.example.webcompiler.docker.entity.ContainerStatus;
 import com.example.webcompiler.docker.entity.MyContainer;
 import com.example.webcompiler.docker.repository.ContainerRepository;
 import com.github.dockerjava.api.DockerClient;
@@ -7,13 +8,19 @@ import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Ports;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -150,7 +157,34 @@ public class DockerServiceImpl implements DockerService{
         //containerRepository.deleteContainer(userUUID);
     }
 
-    private void sendMessage(WebSocketSession session, byte[] buffer) throws IOException {
-        session.sendMessage(new TextMessage(buffer));
+    @PostConstruct
+    public void postConstruct() throws IOException {
+        log.info("애플리케이션 시작 시 Docker 컨테이너 리스트 조회");
+        initInactiveContainerRepository();
+    }
+
+    private void initInactiveContainerRepository() throws IOException {
+        List<Container> containers = new ArrayList<>();
+
+        containers.addAll(dockerClient.listContainersCmd()
+                .withShowAll(true)
+                .withStatusFilter("created")
+                .exec());
+
+        containers.addAll(dockerClient.listContainersCmd()
+                .withShowAll(true)
+                .withStatusFilter("exited")
+                .exec());
+
+        for (Container container : containers) {
+            if (container.getNames()[0].contains("ubuntu-compiler")) {
+                ContainerStatus containerStatus = ContainerStatus.fromString(container.getStatus().split(" ")[0]);
+
+                if (containerStatus.equals(ContainerStatus.CREATED) || containerStatus.equals(ContainerStatus.EXITED)) {
+                    MyContainer myContainer = new MyContainer(container.getId(), container.getNames()[0]);
+                    containerRepository.saveInActiveContainer(myContainer);
+                }
+            }
+        }
     }
 }
