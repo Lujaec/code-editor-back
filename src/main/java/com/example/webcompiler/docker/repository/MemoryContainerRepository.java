@@ -13,9 +13,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Repository
 public class MemoryContainerRepository implements ContainerRepository{
     /**
-    * exited -> Non Active를 의미
+    * inActive -> Non Active를 의미
     * */
-    private static List<MyContainer> exitedStore = new CopyOnWriteArrayList<>();
+    private static List<MyContainer> inActiveStore = new CopyOnWriteArrayList<>();
     private static Map<String, MyContainer> activeStore = new ConcurrentHashMap<>();
 
     @Override
@@ -43,27 +43,27 @@ public class MemoryContainerRepository implements ContainerRepository{
     }
 
     @Override
-    public MyContainer saveExitedContainer(MyContainer myContainer) throws IOException {
-        if(exitedStore.add(myContainer))
+    public MyContainer saveInActiveContainer(MyContainer myContainer) throws IOException {
+        if(inActiveStore.add(myContainer))
             return myContainer;
         else
             return null;
     }
 
     @Override
-    public MyContainer getExitedContainer() {
-        if (exitedStore.isEmpty())
+    public MyContainer getInActiveContainer() {
+        if (inActiveStore.isEmpty())
             return null;
 
-        return exitedStore.get(0);
+        return inActiveStore.get(0);
     }
 
     @Override
-    public MyContainer popExitedContainer() {
-        if (exitedStore.isEmpty())
+    public MyContainer popInActiveContainer() {
+        if (inActiveStore.isEmpty())
             return null;
-        MyContainer myContainer = exitedStore.get(exitedStore.size() - 1);
-        exitedStore.remove(exitedStore.size() - 1);
+        MyContainer myContainer = inActiveStore.get(inActiveStore.size() - 1);
+        inActiveStore.remove(inActiveStore.size() - 1);
         return myContainer;
     }
 

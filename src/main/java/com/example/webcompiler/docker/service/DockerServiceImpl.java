@@ -4,11 +4,9 @@ import com.example.webcompiler.docker.entity.MyContainer;
 import com.example.webcompiler.docker.repository.ContainerRepository;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.ExecCreateCmdResponse;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Ports;
-import com.github.dockerjava.core.command.ExecStartResultCallback;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,7 +14,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.*;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -56,7 +53,7 @@ public class DockerServiceImpl implements DockerService{
 
         log.info("DockerServiceImpl create container {}", containerName);
         MyContainer createdMyContainer = new MyContainer(container.getId(), containerName);
-        containerRepository.saveExitedContainer(createdMyContainer);
+        containerRepository.saveInActiveContainer(createdMyContainer);
         return createdMyContainer;
     }
 
@@ -97,7 +94,7 @@ public class DockerServiceImpl implements DockerService{
 
             log.info("DockerServiceImpl create container {}", containerName);
             MyContainer createdMyContainer = new MyContainer(container.getId(), containerName);
-            containerRepository.saveExitedContainer(createdMyContainer);
+            containerRepository.saveInActiveContainer(createdMyContainer);
         }
     }
 
@@ -114,12 +111,12 @@ public class DockerServiceImpl implements DockerService{
             return activeContainer;
         }
 
-        MyContainer allocContainer = containerRepository.popExitedContainer();
+        MyContainer allocContainer = containerRepository.popInActiveContainer();
 
         if (allocContainer == null){
             log.info("exited상태인 컨테이너가 존재하지 않습니디. 컨태이너 추가");
             prepareContainers();
-            allocContainer = containerRepository.popExitedContainer();
+            allocContainer = containerRepository.popInActiveContainer();
         }
 
         runContainer(allocContainer);
@@ -135,7 +132,7 @@ public class DockerServiceImpl implements DockerService{
             return;
         }
 
-        containerRepository.saveExitedContainer(stopContainer);
+        containerRepository.saveInActiveContainer(stopContainer);
         dockerClient.stopContainerCmd(stopContainer.getContainerId())
                 .exec();
     }

@@ -1,7 +1,6 @@
 package com.example.webcompiler.docker.repository;
 
 import com.example.webcompiler.docker.entity.MyContainer;
-import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 
@@ -12,10 +11,10 @@ public interface ContainerRepository {
 
     MyContainer popActiveContainer(String userUUID);
 
-    MyContainer getExitedContainer();
+    MyContainer getInActiveContainer();
 
-    MyContainer saveExitedContainer(MyContainer myContainer) throws IOException;
+    MyContainer saveInActiveContainer(MyContainer myContainer) throws IOException;
 
-    MyContainer popExitedContainer();
+    MyContainer popInActiveContainer();
 
 }
