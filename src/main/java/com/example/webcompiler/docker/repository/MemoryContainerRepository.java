@@ -5,17 +5,19 @@ import org.springframework.stereotype.Repository;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Repository
 public class MemoryContainerRepository implements ContainerRepository{
     /**
-    * exited -> Non Active를 의미
+    * inActive -> Non Active를 의미
     * */
-    private static List<MyContainer> exitedStore = new CopyOnWriteArrayList<>();
+    private static Deque<MyContainer> inActiveStore = new ConcurrentLinkedDeque<>();
     private static Map<String, MyContainer> activeStore = new ConcurrentHashMap<>();
 
     @Override
@@ -43,28 +45,28 @@ public class MemoryContainerRepository implements ContainerRepository{
     }
 
     @Override
-    public MyContainer saveExitedContainer(MyContainer myContainer) throws IOException {
-        if(exitedStore.add(myContainer))
+    public MyContainer saveInActiveContainer(MyContainer myContainer) throws IOException {
+        if(inActiveStore.add(myContainer))
             return myContainer;
         else
             return null;
     }
 
     @Override
-    public MyContainer getExitedContainer() {
-        if (exitedStore.isEmpty())
-            return null;
-
-        return exitedStore.get(0);
+    public Deque<MyContainer> getInActiveContainers() {
+        return inActiveStore;
     }
 
     @Override
-    public MyContainer popExitedContainer() {
-        if (exitedStore.isEmpty())
+    public MyContainer popInActiveContainer() {
+        if (inActiveStore.isEmpty())
             return null;
-        MyContainer myContainer = exitedStore.get(exitedStore.size() - 1);
-        exitedStore.remove(exitedStore.size() - 1);
-        return myContainer;
+
+        return inActiveStore.pollLast();
     }
 
+    @Override
+    public void removeInActiveContainer(String containerId) {
+        inActiveStore.removeIf(container -> container.getContainerId().equals(containerId));
+    }
 }

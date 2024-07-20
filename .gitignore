@@ -18,6 +18,8 @@ application-ec2.yml
 application-jwt.yml
 application-session.yml
 application-db.yml
+application-dockerEc2.yml
+*.pem
 
 .idea
 *.iws

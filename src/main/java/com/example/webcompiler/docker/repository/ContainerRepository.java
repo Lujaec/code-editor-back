@@ -1,9 +1,10 @@
 package com.example.webcompiler.docker.repository;
 
 import com.example.webcompiler.docker.entity.MyContainer;
-import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.Deque;
+import java.util.List;
 
 public interface ContainerRepository {
     MyContainer getActiveContainer(String userUUID);
@@ -12,10 +13,11 @@ public interface ContainerRepository {
 
     MyContainer popActiveContainer(String userUUID);
 
-    MyContainer getExitedContainer();
+    Deque<MyContainer> getInActiveContainers();
 
-    MyContainer saveExitedContainer(MyContainer myContainer) throws IOException;
+    MyContainer saveInActiveContainer(MyContainer myContainer) throws IOException;
 
-    MyContainer popExitedContainer();
+    MyContainer popInActiveContainer();
 
+  void removeInActiveContainer(String containerId);
 }

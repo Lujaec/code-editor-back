@@ -1,24 +1,26 @@
 package com.example.webcompiler.docker.service;
 
+import com.example.webcompiler.docker.entity.ContainerStatus;
 import com.example.webcompiler.docker.entity.MyContainer;
 import com.example.webcompiler.docker.repository.ContainerRepository;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.ExecCreateCmdResponse;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Ports;
-import com.github.dockerjava.core.command.ExecStartResultCallback;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -29,9 +31,27 @@ public class DockerServiceImpl implements DockerService{
     private  final DockerClient dockerClient;
 
     private final ContainerRepository containerRepository;
-    private ExecutorService executorService = Executors.newCachedThreadPool();
-
     private final int DEFAULT_SIZE = 3;
+    private final int CONTAINER_INACTIVITY_THRESHOLD_MINUTES = 1;
+
+    @PostConstruct
+    public void postConstruct() throws IOException {
+        log.info("Docker 컨테이너 리스트 조회");
+        initInactiveContainerRepository();
+    }
+
+    @Scheduled(fixedRate = 60000) // 60초마다 실행
+    public void removeInactiveContainers() {
+        log.info("비활성 컨테이너 삭제 작업 시작");
+        Deque<MyContainer> inactiveContainers = containerRepository.getInActiveContainers();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (MyContainer container : inactiveContainers) {
+            if (container.getLastUsed() != null && now.minusMinutes(CONTAINER_INACTIVITY_THRESHOLD_MINUTES).isAfter(container.getLastUsed())) {
+                deleteContainer(container);
+            }
+        }
+    }
 
     @Override
     public MyContainer createContainer(String userUUID) throws IOException {
@@ -56,7 +76,7 @@ public class DockerServiceImpl implements DockerService{
 
         log.info("DockerServiceImpl create container {}", containerName);
         MyContainer createdMyContainer = new MyContainer(container.getId(), containerName);
-        containerRepository.saveExitedContainer(createdMyContainer);
+        containerRepository.saveInActiveContainer(createdMyContainer);
         return createdMyContainer;
     }
 
@@ -70,6 +90,7 @@ public class DockerServiceImpl implements DockerService{
         for (Container container : containers) {
             if(container.getId().equals(myContainer.getContainerId())){
                 myContainer.setPublicPort(container.getPorts()[0].getPublicPort());
+                myContainer.setLastUsed(LocalDateTime.now());
             }
         }
     }
@@ -97,7 +118,7 @@ public class DockerServiceImpl implements DockerService{
 
             log.info("DockerServiceImpl create container {}", containerName);
             MyContainer createdMyContainer = new MyContainer(container.getId(), containerName);
-            containerRepository.saveExitedContainer(createdMyContainer);
+            containerRepository.saveInActiveContainer(createdMyContainer);
         }
     }
 
@@ -114,12 +135,12 @@ public class DockerServiceImpl implements DockerService{
             return activeContainer;
         }
 
-        MyContainer allocContainer = containerRepository.popExitedContainer();
+        MyContainer allocContainer = containerRepository.popInActiveContainer();
 
         if (allocContainer == null){
             log.info("exited상태인 컨테이너가 존재하지 않습니디. 컨태이너 추가");
             prepareContainers();
-            allocContainer = containerRepository.popExitedContainer();
+            allocContainer = containerRepository.popInActiveContainer();
         }
 
         runContainer(allocContainer);
@@ -131,29 +152,45 @@ public class DockerServiceImpl implements DockerService{
         MyContainer stopContainer = containerRepository.popActiveContainer(userUUID);
 
         if(stopContainer == null){
-            log.info("[DockerService#stopContainer] can not found active container. userUUID = {}", userUUID);
+            log.info("[DockerService#stopContainer] 활성화된 컨테이너를 찾을 수 없습니다. userUUID = {}", userUUID);
             return;
         }
 
-        containerRepository.saveExitedContainer(stopContainer);
+        containerRepository.saveInActiveContainer(stopContainer);
         dockerClient.stopContainerCmd(stopContainer.getContainerId())
                 .exec();
     }
 
     @Override
-    public void deleteContainer() {
-
+    public void deleteContainer(MyContainer myContainer) {
+        log.info("[DockerService#deleteContainer] 컨테이너 삭제: ID = {}, 이름 = {}", myContainer.getContainerId(), myContainer.getContainerName());
+        dockerClient.removeContainerCmd(myContainer.getContainerId()).exec();
+        containerRepository.removeInActiveContainer(myContainer.getContainerId());
     }
 
-    private void close(String userUUID) {
-        /* TDD
-         * docker container 종료 or 삭제
-         */
+    private void initInactiveContainerRepository() throws IOException {
+        List<Container> containers = new ArrayList<>();
 
-        //containerRepository.deleteContainer(userUUID);
-    }
+        containers.addAll(dockerClient.listContainersCmd()
+                .withShowAll(true)
+                .withStatusFilter("created")
+                .exec());
 
-    private void sendMessage(WebSocketSession session, byte[] buffer) throws IOException {
-        session.sendMessage(new TextMessage(buffer));
+        containers.addAll(dockerClient.listContainersCmd()
+                .withShowAll(true)
+                .withStatusFilter("exited")
+                .exec());
+
+        for (Container container : containers) {
+            if (container.getNames()[0].contains("ubuntu-compiler")) {
+                ContainerStatus containerStatus = ContainerStatus.fromString(container.getStatus().split(" ")[0]);
+
+                if (containerStatus.equals(ContainerStatus.CREATED) || containerStatus.equals(ContainerStatus.EXITED)) {
+                    MyContainer myContainer = new MyContainer(container.getId(), container.getNames()[0]);
+                    myContainer.setLastUsed(LocalDateTime.now());
+                    containerRepository.saveInActiveContainer(myContainer);
+                }
+            }
+        }
     }
 }

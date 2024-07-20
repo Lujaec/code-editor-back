@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Properties;
 
 @SpringBootApplication
+@EnableScheduling
 public class WebSocketApplication {
 
 	@Value("${ec2.info.host}")
