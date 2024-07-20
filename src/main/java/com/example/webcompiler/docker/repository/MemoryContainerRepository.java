@@ -5,9 +5,11 @@ import org.springframework.stereotype.Repository;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Repository
@@ -15,7 +17,7 @@ public class MemoryContainerRepository implements ContainerRepository{
     /**
     * inActive -> Non Active를 의미
     * */
-    private static List<MyContainer> inActiveStore = new CopyOnWriteArrayList<>();
+    private static Deque<MyContainer> inActiveStore = new ConcurrentLinkedDeque<>();
     private static Map<String, MyContainer> activeStore = new ConcurrentHashMap<>();
 
     @Override
@@ -51,20 +53,20 @@ public class MemoryContainerRepository implements ContainerRepository{
     }
 
     @Override
-    public MyContainer getInActiveContainer() {
-        if (inActiveStore.isEmpty())
-            return null;
-
-        return inActiveStore.get(0);
+    public Deque<MyContainer> getInActiveContainers() {
+        return inActiveStore;
     }
 
     @Override
     public MyContainer popInActiveContainer() {
         if (inActiveStore.isEmpty())
             return null;
-        MyContainer myContainer = inActiveStore.get(inActiveStore.size() - 1);
-        inActiveStore.remove(inActiveStore.size() - 1);
-        return myContainer;
+
+        return inActiveStore.pollLast();
     }
 
+    @Override
+    public void removeInActiveContainer(String containerId) {
+        inActiveStore.removeIf(container -> container.getContainerId().equals(containerId));
+    }
 }

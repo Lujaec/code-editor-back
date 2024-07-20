@@ -3,6 +3,8 @@ package com.example.webcompiler.docker.repository;
 import com.example.webcompiler.docker.entity.MyContainer;
 
 import java.io.IOException;
+import java.util.Deque;
+import java.util.List;
 
 public interface ContainerRepository {
     MyContainer getActiveContainer(String userUUID);
@@ -11,10 +13,11 @@ public interface ContainerRepository {
 
     MyContainer popActiveContainer(String userUUID);
 
-    MyContainer getInActiveContainer();
+    Deque<MyContainer> getInActiveContainers();
 
     MyContainer saveInActiveContainer(MyContainer myContainer) throws IOException;
 
     MyContainer popInActiveContainer();
 
+  void removeInActiveContainer(String containerId);
 }

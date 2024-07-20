@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.*;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -11,6 +12,7 @@ public class MyContainer {
     String containerId;
     String containerName;
     Integer publicPort;
+    LocalDateTime lastUsed;
     InputStream inputStream = null;
     OutputStream outputStream = null;
 

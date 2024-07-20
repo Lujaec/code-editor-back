@@ -12,7 +12,7 @@ public interface DockerService {
     public MyContainer allocateContainer(String userUUID) throws IOException, InterruptedException;
     public void runContainer(MyContainer myContainer) throws InterruptedException;
     public void stopContainer(String userUUID) throws IOException;
-    public void deleteContainer();
+    public void deleteContainer(MyContainer container);
 
     // 삭제할 메서드
     public MyContainer createContainer(String userUUID) throws IOException;
