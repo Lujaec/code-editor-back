@@ -22,9 +22,10 @@ public class MyContainer {
         setStream();
     }
 
-    public MyContainer(String containerId, String containerName) throws IOException {
+    public MyContainer(String containerId, String containerName, LocalDateTime lastUsed) throws IOException {
         this.containerId = containerId;
         this.containerName = containerName;
+        this.lastUsed = lastUsed;
         setStream();
     }
 
