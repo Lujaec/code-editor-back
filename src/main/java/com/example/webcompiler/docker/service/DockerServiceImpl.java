@@ -49,11 +49,11 @@ public class DockerServiceImpl implements DockerService{
         for (MyContainer container : inactiveContainers) {
             log.debug("containerId = {}, lastUsed = {}, now = {}", container.getContainerId(), container.getLastUsed(), LocalDateTime.now());
 
+
             if (container.getLastUsed() != null && now.minusMinutes(CONTAINER_INACTIVITY_THRESHOLD_MINUTES).isAfter(container.getLastUsed())) {
                 deleteContainer(container);
             }
         }
-
         log.debug("비활성 컨테이너 삭제 작업 종료");
     }
 
