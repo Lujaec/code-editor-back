@@ -38,8 +38,6 @@ public class TerminalHandler implements WebSocketHandler {
     public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
         ObjectMapper om = new ObjectMapper();
 
-        log.info("handle Message. session Id = {}", session.getId());
-
         if(message.getPayload().toString().contains("OPEN WEB SOCKET")) {
             TerminalConnectionDto terminalConnectionDto = om.readValue(message.getPayload().toString(), TerminalConnectionDto.class);
             MyContainer myContainer = dockerService.allocateContainer(terminalConnectionDto.getUserUUID());
