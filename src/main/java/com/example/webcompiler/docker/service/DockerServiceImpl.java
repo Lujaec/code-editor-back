@@ -32,7 +32,7 @@ public class DockerServiceImpl implements DockerService{
 
     private final ContainerRepository containerRepository;
     private final int DEFAULT_SIZE = 3;
-    private final int CONTAINER_INACTIVITY_THRESHOLD_MINUTES = 1;
+    private final int CONTAINER_INACTIVITY_THRESHOLD_MINUTES = 30;
 
     @PostConstruct
     public void postConstruct() throws IOException {
@@ -42,19 +42,19 @@ public class DockerServiceImpl implements DockerService{
 
     @Scheduled(fixedRate = 60000) // 60초마다 실행
     public void removeInactiveContainers() {
-        log.info("비활성 컨테이너 삭제 작업 시작");
+        log.debug("비활성 컨테이너 삭제 작업 시작");
         Deque<MyContainer> inactiveContainers = containerRepository.getInActiveContainers();
         LocalDateTime now = LocalDateTime.now();
 
         for (MyContainer container : inactiveContainers) {
-            log.info("containerId = {}, lastUsed = {}, now = {}", container.getContainerId(), container.getLastUsed(), LocalDateTime.now());
+            log.debug("containerId = {}, lastUsed = {}, now = {}", container.getContainerId(), container.getLastUsed(), LocalDateTime.now());
+
 
             if (container.getLastUsed() != null && now.minusMinutes(CONTAINER_INACTIVITY_THRESHOLD_MINUTES).isAfter(container.getLastUsed())) {
                 deleteContainer(container);
             }
         }
-
-        log.info("비활성 컨테이너 삭제 작업 종료");
+        log.debug("비활성 컨테이너 삭제 작업 종료");
     }
 
     @Override
@@ -79,7 +79,7 @@ public class DockerServiceImpl implements DockerService{
 
 
         log.info("DockerServiceImpl create container {}", containerName);
-        MyContainer createdMyContainer = new MyContainer(container.getId(), containerName);
+        MyContainer createdMyContainer = new MyContainer(container.getId(), containerName, LocalDateTime.now());
         containerRepository.saveInActiveContainer(createdMyContainer);
         return createdMyContainer;
     }
@@ -121,7 +121,7 @@ public class DockerServiceImpl implements DockerService{
                     .exec();
 
             log.info("DockerServiceImpl create container {}", containerName);
-            MyContainer createdMyContainer = new MyContainer(container.getId(), containerName);
+            MyContainer createdMyContainer = new MyContainer(container.getId(), containerName, LocalDateTime.now());
             containerRepository.saveInActiveContainer(createdMyContainer);
         }
     }
@@ -190,8 +190,8 @@ public class DockerServiceImpl implements DockerService{
                 ContainerStatus containerStatus = ContainerStatus.fromString(container.getStatus().split(" ")[0]);
 
                 if (containerStatus.equals(ContainerStatus.CREATED) || containerStatus.equals(ContainerStatus.EXITED)) {
-                    MyContainer myContainer = new MyContainer(container.getId(), container.getNames()[0]);
-                    myContainer.setLastUsed(LocalDateTime.now());
+                    MyContainer myContainer = new MyContainer(container.getId(), container.getNames()[0], LocalDateTime.now());
+
                     containerRepository.saveInActiveContainer(myContainer);
                 }
             }
